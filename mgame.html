@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maze with Obstacles</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: black;
+            color: white;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+            flex-direction: column;
+        }
+        .maze {
+            display: grid;
+            grid-template-columns: repeat(25, 25px); /* 25 columns, each 25px */
+            grid-template-rows: repeat(25, 25px); /* 25 rows, each 25px */
+            gap: 2px;
+        }
+        .cell {
+            width: 25px;
+            height: 25px;
+            background-color: black;
+        }
+        .player {
+            background-color: white;
+        }
+        .obstacle {
+            background-color: black;
+        }
+        .goal {
+            background-color: red;
+        }
+        .flashing {
+            background-color: rgba(130, 7, 7, 0.584) !important;
+        }
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            visibility: hidden;
+            color: rgba(255, 0, 0, 0.731);
+            text-shadow: 2px 2px 10px rgba(0, 0, 0, 0.8); /* Adds a glowing effect */
+            background-color: black;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .restart-button {
+            position: absolute;
+            bottom: 20px;
+            background-color: rgba(255, 0, 0, 0.804);
+            border: none;
+            color: black;
+            font-size: 24px;
+            padding: 15px 30px;
+            cursor: pointer;
+            border-radius: 10px;
+            visibility: hidden;
+        }
+        .restart-button:hover {
+            background-color: rgba(255, 0, 0, 0.553);
+        }
+    </style>
+</head>
+<body>
+
+<div class="maze">
+    <!-- Maze grid will be generated here -->
+</div>
+<div class="message" id="message">
+    Congratulations! You've reached the center!
+</div>
+<button class="restart-button" id="restartButton">Restart</button>
+
+<script>
+    
+    const mazeSize = 25; // 25x25 grid
+    const mazeElement = document.querySelector('.maze');
+    const messageElement = document.getElementById('message');
+    const restartButton = document.getElementById('restartButton');
+    let playerPosition = { x: 0, y: 0 }; // Start at a random edge
+    let maze = []; // 2D array representing the maze
+    let goalPosition = { x: Math.floor(mazeSize / 2), y: Math.floor(mazeSize / 2) }; // Center as the goal
+    let body = document.querySelector('body'); // To change background color
+
+    // Function to generate a new maze
+    function generateMaze() {
+        // Clear the previous maze
+        mazeElement.innerHTML = '';
+
+        // Reinitialize the maze array
+        maze = [];
+
+        // Create the maze grid and obstacles
+        for (let y = 0; y < mazeSize; y++) {
+            maze[y] = [];
+            for (let x = 0; x < mazeSize; x++) {
+                maze[y][x] = 'empty'; // Mark all cells as empty initially
+            }
+        }
+
+        // Add obstacles (random obstacle placement for demo purposes)
+        for (let i = 0; i < mazeSize * mazeSize / 2; i++) {
+            let randomX = Math.floor(Math.random() * mazeSize);
+            let randomY = Math.floor(Math.random() * mazeSize);
+
+            // Avoid placing obstacles where the goal or player is
+            if ((randomX !== playerPosition.x || randomY !== playerPosition.y) && (randomX !== goalPosition.x || randomY !== goalPosition.y)) {
+                maze[randomY][randomX] = 'obstacle';
+            }
+        }
+
+        // Create a direct path from the player's position to the goal (center)
+        createPathToGoal();
+
+        // Create the grid of divs
+        for (let y = 0; y < mazeSize; y++) {
+            for (let x = 0; x < mazeSize; x++) {
+                const cell = document.createElement('div');
+                cell.classList.add('cell');
+                if (maze[y][x] === 'obstacle') {
+                    cell.classList.add('obstacle'); // Set obstacles to black
+                } else if (x === goalPosition.x && y === goalPosition.y) {
+                    cell.classList.add('goal'); // Mark the center as the goal
+                }
+                mazeElement.appendChild(cell);
+            }
+        }
+    }
+
+    // Function to create a path from the player's starting position to the goal (center)
+    function createPathToGoal() {
+        let currentX = playerPosition.x;
+        let currentY = playerPosition.y;
+
+        // Generate a direct path to the center
+        while (currentX !== goalPosition.x || currentY !== goalPosition.y) {
+            maze[currentY][currentX] = 'empty'; // Clear current cell
+
+            if (currentX < goalPosition.x) currentX++;
+            else if (currentX > goalPosition.x) currentX--;
+
+            if (currentY < goalPosition.y) currentY++;
+            else if (currentY > goalPosition.y) currentY--;
+        }
+
+        maze[currentY][currentX] = 'empty'; // Ensure the goal cell is clear
+    }
+
+    // Function to update the player's position
+    function movePlayer() {
+        const allCells = document.querySelectorAll('.cell');
+        allCells.forEach(cell => cell.classList.remove('player')); // Remove the player class from all cells
+
+        const playerCell = allCells[playerPosition.y * mazeSize + playerPosition.x];
+        playerCell.classList.add('player'); // Add the player class to the current cell
+    }
+
+    // Check if the player has reached the goal (center of the maze)
+    function checkWin() {
+        if (playerPosition.x === goalPosition.x && playerPosition.y === goalPosition.y) {
+            messageElement.style.visibility = 'visible'; // Show the win message
+            restartButton.style.visibility = 'visible'; // Show the restart button
+        }
+    }
+
+    // Function to place the player at a random edge position
+    function placePlayerOnEdge() {
+        const edge = Math.floor(Math.random() * 4); // Choose one of the 4 edges
+        switch (edge) {
+            case 0: // Top edge
+                playerPosition = { x: Math.floor(Math.random() * mazeSize), y: 0 };
+                break;
+            case 1: // Bottom edge
+                playerPosition = { x: Math.floor(Math.random() * mazeSize), y: mazeSize - 1 };
+                break;
+            case 2: // Left edge
+                playerPosition = { x: 0, y: Math.floor(Math.random() * mazeSize) };
+                break;
+            case 3: // Right edge
+                playerPosition = { x: mazeSize - 1, y: Math.floor(Math.random() * mazeSize) };
+                break;
+        }
+    }
+
+    // Handle player movement using arrow keys
+    function handleKeyPress(event) {
+        let newX = playerPosition.x;
+        let newY = playerPosition.y;
+
+        switch(event.key) {
+            case 'ArrowUp':
+                newY = playerPosition.y > 0 ? playerPosition.y - 1 : playerPosition.y;
+                break;
+            case 'ArrowDown':
+                newY = playerPosition.y < mazeSize - 1 ? playerPosition.y + 1 : playerPosition.y;
+                break;
+            case 'ArrowLeft':
+                newX = playerPosition.x > 0 ? playerPosition.x - 1 : playerPosition.x;
+                break;
+            case 'ArrowRight':
+                newX = playerPosition.x < mazeSize - 1 ? playerPosition.x + 1 : playerPosition.x;
+                break;
+        }
+
+        // Only move if the target cell is not an obstacle
+        if (maze[newY][newX] !== 'obstacle') {
+            playerPosition = { x: newX, y: newY };
+            movePlayer(); // Update the player's position
+            checkWin(); // Check if the player reached the goal
+        }
+    }
+
+    // Restart the game
+    function restartGame() {
+        placePlayerOnEdge(); // Reset player to a random edge position
+        messageElement.style.visibility = 'hidden'; // Hide the congratulations message
+        restartButton.style.visibility = 'hidden'; // Hide the restart button
+        generateMaze(); // Generate a new maze
+        movePlayer(); // Place player at initial position
+    }
+
+    // Function to make non-obstacle grid cells and the center flash gray every 15 seconds
+    function flashGrayGrid() {
+        setInterval(() => {
+            const allCells = document.querySelectorAll('.cell');
+            allCells.forEach(cell => {
+                if (!cell.classList.contains('obstacle') && !cell.classList.contains('goal') && !cell.classList.contains('player') ) {
+                    cell.classList.add('flashing'); // Add flashing class to non-obstacle and center cells
+                }
+            });
+            setTimeout(() => {
+                allCells.forEach(cell => {
+                    cell.classList.remove('flashing'); // Remove flashing class after 1 second
+                });
+            }, 1000);
+        }, 15000); // Repeat every 15 seconds
+    }
+
+    // Initialize the maze and player
+    placePlayerOnEdge(); // Place player on a random edge
+    generateMaze();
+    movePlayer(); // Place player at initial position
+    flashGrayGrid(); // Start the grid flashing effect
+
+    // Add event listener for arrow keys
+    window.addEventListener('keydown', handleKeyPress);
+
+    // Add event listener for the restart button
+    restartButton.addEventListener('click', restartGame);
+</script>
+
+</body>
+</html>
